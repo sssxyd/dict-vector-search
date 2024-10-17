@@ -1,6 +1,7 @@
 import csv
 import os
 import re
+import time
 
 import jieba
 from pypinyin import pinyin, Style
@@ -110,9 +111,10 @@ def load_dict_word_set() -> dict[str, DictWord]:
             words[dw.code] = dw
     return words
 
-def prepare_index_words(ngram_min : int = 3, ngram_max : int = 5):
+def prepare_index_words(ngram_min : int = 3, ngram_max : int = 5) -> list[str]:
     log = basic.log()
     words = load_dict_words()
+    keys = []
     index_words = dict()
     for word in words:
         sub_words = split_word(word.word, ngram_min, ngram_max)
@@ -128,10 +130,28 @@ def prepare_index_words(ngram_min : int = 3, ngram_max : int = 5):
         writer = csv.writer(file)
         # 逐行写入数据
         for key, value in index_words.items():
+            keys.append(key)
             codes = ', '.join(str(num) for num in value)
             writer.writerow([key, codes])
     log.info(f">>saved {len(index_words)} index words to {filepath}")
+    return keys
 
+def load_index_codes() -> list[set[str]]:
+    log = basic.log()
+    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'index_words.csv')
+    if not os.path.exists(filepath):
+        log.error(f"File not found: {filepath}")
+        return []
+    codeList = []
+    with open(filepath, 'r', newline='', encoding='utf-8') as file:
+        reader = csv.reader(file)
+        # 逐行读取数据
+        for row in reader:
+            codes = set()
+            for code in row[1].split(','):
+                codes.add(code.strip())
+            codeList.append(codes)
+    return codeList
 
 def load_index_word_codes() -> (list[str], list[set[str]]):
     log = basic.log()
@@ -152,3 +172,11 @@ def load_index_word_codes() -> (list[str], list[set[str]]):
             wordList.append(row[0])
             codeList.append(codes)
     return wordList, codeList
+
+def get_dict_words_last_modify_time() -> str:
+    filepath = os.path.join(basic.func.get_executable_directory(), 'dict', 'dict_words.csv')
+    return basic.func.get_file_last_modify_time(filepath)
+
+def get_index_words_last_modify_time() -> str:
+    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'index_words.csv')
+    return basic.func.get_file_last_modify_time(filepath)

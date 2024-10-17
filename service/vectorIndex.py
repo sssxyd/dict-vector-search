@@ -21,12 +21,14 @@ class IndexWord:
         self.distance = distance
 
     def __str__(self):
-        return f"index={self.index}, code={self.code}, word={self.word}, score={self.score}, distance={self.distance}, credible={self.isCredible()}"
+        return f"index={self.index}, code={self.code}, word={self.word}, score={self.score}, distance={self.distance}"
 
     def __repr__(self):
         return self.__str__()
 
     def isCredible(self) -> bool:
+        if self.index == "PINYIN":
+            return True
         if self.score < 1:
             return self.distance > 0.6
         elif self.score == 1:
@@ -60,20 +62,19 @@ def _vector_words_with_model(process_index : int, index_words: list[str], model:
     return word_embeddings, pinyin_embeddings
 
 
-def create_vector_indexes(index_words : list[str], model : SentenceTransformer):
+def create_vector_indexes(index_words : list[str], model : SentenceTransformer, worker : int = 0, batch_size : int = 500):
     log = basic.log()  # 确保log函数正确
     word_embeddings = []
     pinyin_embeddings = []
-    worker = psutil.cpu_count(logical=True) - 1
     if worker == 0:
-        worker = 1
-    batch_size = math.ceil(len(index_words)/worker)
-    log.info(f"Creating indexes with {worker} workers, each worker process {batch_size} words")
+        worker = psutil.cpu_count(logical=True)
+    worker_size = math.ceil(len(index_words)/worker)
+    log.info(f"Creating indexes with {worker} workers, each worker process {worker_size} words")
     with multiprocessing.Pool(processes=worker) as pool:
         worker_index = 1
         results = []
-        for i in range(0, len(index_words), batch_size):
-            batch_words = index_words[i:i + batch_size]
+        for i in range(0, len(index_words), worker_size):
+            batch_words = index_words[i:i + worker_size]
             result = pool.apply_async(_vector_words_with_model, args=(worker_index, batch_words, model))
             results.append(result)
             worker_index = worker_index + 1
@@ -165,17 +166,29 @@ def _search_vector_indexes(key_word: str, pinyin: bool,  model: SentenceTransfor
             similar_word = dict_words[code]
             score = calculate_match_score(key_word, similar_word.word)
             iw = IndexWord(index="PINYIN" if pinyin else "WORD", code=code, word=similar_word.word, score=score, distance=distance)
-            results.append(iw)
+            if iw.isCredible():
+                results.append(iw)
     return results
 
+def get_word_index_last_modify_time() -> str:
+    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'word_index.bin')
+    return basic.func.get_file_last_modify_time(filepath)
+
+def get_pinyin_index_last_modify_time() -> str:
+    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'pinyin_index.bin')
+    return basic.func.get_file_last_modify_time(filepath)
+
 def search_vector_indexes(word: str, model: SentenceTransformer, word_index: IndexFlatL2, pinyin_index : IndexFlatL2,
-                          index_codes: list[set[str]], dict_words: dict[str, DictWord], top_k: int = 5) -> list[IndexWord]:
+                          index_codes: list[set[str]], dict_words: dict[str, DictWord], top_k: int = 5, pinyin : bool = False) -> list[IndexWord]:
 
     key_word = trim_word(word)
 
+    top_n = max(top_k + 5, top_k * 2)
+
     # 搜索拼音和非拼音的向量索引
-    index_words = _search_vector_indexes(key_word, False, model, word_index, index_codes, dict_words, top_k + 5)
-    index_words += _search_vector_indexes(key_word, True, model, pinyin_index, index_codes, dict_words, top_k + 5)
+    index_words = _search_vector_indexes(key_word, False, model, word_index, index_codes, dict_words, top_n)
+    if pinyin:
+        index_words += _search_vector_indexes(key_word, True, model, pinyin_index, index_codes, dict_words, top_n)
 
     # 按照分数和距离排序
     sorted_results = sorted(index_words, key=lambda x: (-x.score, -x.distance, len(x.word)))

@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 from datetime import datetime
 
 
@@ -25,7 +26,6 @@ def load_args() -> dict[str, any]:
             if idx > 0:
                 params[arg[1:idx].strip()] = arg[idx + 1:].strip()
     return params
-
 
 def get_duration(start_time: datetime) -> str:
     # 获取当前时间
@@ -118,3 +118,11 @@ def touch_dir(path):
         os.makedirs(dir_path, exist_ok=True)
     except Exception as e:
         print(f"创建路径 {dir_path} 时发生错误: {e}")
+
+def get_file_last_modify_time(filepath : str) -> str:
+    if not os.path.exists(filepath):
+        return ""
+    # 获取最后修改时间
+    modification_time = os.path.getmtime(filepath)
+    # 将时间格式化为可读形式
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(modification_time))

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <title>Vector-Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        h1, h3, h3, h4, h5 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: Consolas, "Courier New", monospace;
+        }
+        #codeBlock {
+            display: none;
+            margin-top: 10px;
+        }
+        #toggleButton {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #toggleButton:hover {
+            background-color: #0056b3;
+        }
+        .round-button {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background-color: #007bff; 
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .round-button:hover {
+            background-color: #0056b3;
+            opacity: 0.5;
+        }   
+    </style>
+</head>
+<body>
+<h1 style="text-align: center;"> Vector-Search Usage <iframe src="https://ghbtns.com/github-btn.html?user=sssxyd&repo=dict-vector-search&type=star&size=large&text=false" frameborder="0" scrolling="0" width="40" height="30" title="GitHub"></iframe></h1>
+
+<h2>1. Put Dict Words <button class="round-button" onclick="toggleCodeBlock(this, 'api1')">+</button></h2>
+<div id="api1" style="display: none;">
+    <h3>1.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc1')">-</button></h3>
+    <div id="desc1">
+        <ul>
+            <li>Endpoint: <strong>/token</strong></li>
+            <li>Method: <strong>POST/GET</strong></li>
+            <li>Response Type: <strong>application/json</strong></li>
+            <li>Purpose: Generate a JWT Token based on the parameters for SSE connection authentication.</li>
+        </ul>
+    </div>
+
+    <h3>1.2. Request Parameters <button class="round-button" onclick="toggleCodeBlock(this, 'params1')">+</button></h3>
+    <div id="params1" style="display: none;">
+        <h4>1.2.1. Header Parameters (Required for POST)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type/Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Content-Type</td>
+                    <td>Yes</td>
+                    <td>application/json</td>
+                    <td>POST JSON</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>1.2.2. Body Parameters (Required for POST)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type</th>
+                    <th>Restrictions</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>uid</td>
+                    <td>Yes</td>
+                    <td>string</td>
+                    <td></td>
+                    <td>User ID</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>device</td>
+                    <td>No</td>
+                    <td>string</td>
+                    <td></td>
+                    <td>Client device ID (unique)</td>
+                </tr>
+            </tbody>  
+            <tbody>
+                <tr>
+                    <td>ttl</td>
+                    <td>No</td>
+                    <td>int</td>
+                    <td>Seconds, default 3600 seconds</td>
+                    <td>Token expiration time in ttl seconds</td>
+                </tr>
+            </tbody>          
+        </table>
+    </div>
+
+    <h3>1.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req1')">+</button></h3>
+    <div id="req1" style="display: none;">
+    <pre><code>
+        POST /token HTTP/1.1
+        {
+            "uid": "115",
+            "device": "x1987"
+        }
+        // or
+        GET /token?uid=1556
+    </code></pre>
+    </div>
+
+    <h3>1.4. Response Example <button class="round-button" onclick="toggleCodeBlock(this, 'resp1')">+</button></h3>
+    <div id="resp1" style="display: none;">
+    <pre><code>{
+    "code": 1,  // 1: success, others: failure, all APIs return this format
+    "msg": "success",  // Error message
+    "result": "jwtToken",    // Generated JWT Token, validity based on ttl
+    "micros": 189       // API processing time in microseconds
+    }</code></pre>
+    </div>
+</div>
+
+<h2>2. Create Vector Index <button class="round-button" onclick="toggleCodeBlock(this, 'api2')">+</button></h2>
+<div id="api2" style="display: none;">
+    <h3>2.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc2')">-</button></h3>
+    <div id="desc2">
+        <ul>
+            <li>Endpoint: <strong>/send</strong></li>
+            <li>Method: <strong>GET/POST</strong></li>
+            <li>Response Type: <strong>application/json</strong></li>
+            <li>Send an event or message to specified uid/deviceId/all connected devices</li>
+        </ul>
+    </div>
+
+    <h3>2.2. Request Parameters <button class="round-button" onclick="toggleCodeBlock(this, 'params2')">+</button></h3>
+    <div id="params2" style="display: none;">
+        <h4>2.2.1. Header (Required for POST)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type/Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Content-Type</td>
+                    <td>Yes</td>
+                    <td>application/json</td>
+                    <td>POST JSON</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>2.2.2. Body Parameters</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type</th>
+                    <th>Restrictions</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>data</td>
+                    <td>Yes</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>Message content</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>event</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>Event name</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>uid</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>User ID, multiple uids separated by commas</td>
+                </tr>
+            </tbody>  
+            <tbody>
+                <tr>
+                    <td>device</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>Device ID, multiple device IDs separated by commas</td>
+                </tr>
+            </tbody>          
+        </table>
+    </div>    
+
+    <h3>2.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req2')">+</button></h3>
+    <div id="req2" style="display: none;">
+    <pre><code>
+        POST /send HTTP/1.1
+        {
+            "uid": "115",
+            "data": "test"
+        }
+        // or
+        GET /send?uid=1556&data=abc
+    </code></pre>
+    </div>
+
+    <h3>2.4. Response Example <button class="round-button" onclick="toggleCodeBlock(this, 'resp2')">+</button></h3>
+    <div id="resp2" style="display: none;">
+    <pre><code>{
+    "code": 1,  // 1: success, others: failure, all APIs return this format
+    "msg": "success",  // Error message
+    "result": 3,    // Number of devices the message was successfully sent to
+    "micros": 189       // API processing time in microseconds
+    }</code></pre>
+    </div>
+</div>
+
+<h2>3. Reload Server <button class="round-button" onclick="toggleCodeBlock(this, 'api3')">+</button></h2>
+<div id="api3" style="display: none;">
+    <h3>3.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc3')">-</button></h3>
+    <div id="desc3">
+        <ul>
+            <li>Endpoint: <strong>/events</strong></li>
+            <li>Method: <strong>GET</strong></li>
+            <li>Purpose: this is the endpoint for the client to connect to the SSE server, and the only one that needs to be exposed to the public.</li>
+        </ul>
+    </div>
+
+    <h3>3.2. Request Parameters <button class="round-button" onclick="toggleCodeBlock(this, 'params3')">+</button></h3>
+    <div id="params3" style="display: none;">
+        <h4>3.2.1. Header</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type/Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>X-SSE-TOKEN</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td>If the token is in the query parameter, this header is ignored; otherwise, the value of this header is used as the token</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>X-SSE-DEVICE</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td>If the device is in the query parameter, this header is ignored; otherwise, the value of this header is used as the device</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>X-SSE-ID</td>
+                    <td>No</td>
+                    <td>Int</td>
+                    <td>If the id is in the query parameter, this header is ignored; otherwise, the value of this header is used as the id</td>
+                </tr>
+            </tbody>                        
+        </table>
+        <h4>3.2.2. Body Parameters</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type</th>
+                    <th>Restrictions</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>token</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td>At least one of token in the query or X-SSE-TOKEN in the header must exist</td>
+                    <td>JWTToken</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>device</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td>At least one of device in the query or X-SSE-DEVICE in the header must exist</td>
+                    <td>Device ID</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>id</td>
+                    <td>No</td>
+                    <td>int</td>
+                    <td>If not passed in the query, it is taken from the header (X-SSE-ID); if not available, the LastEventId mechanism is not used</td>
+                    <td>LastEventId</td>
+                </tr>
+            </tbody>            
+        </table>
+    </div>
+    
+    <h3>3.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req3')">+</button></h3>
+    <div id="req3" style="display: none;">
+    <pre><code>
+        GET /events?token=abcdefg&device=xuyd
+    </code></pre>
+    </div>
+</div>
+
+<h2>4. Search <button class="round-button" onclick="toggleCodeBlock(this, 'api4')">+</button></h2>
+<div id="api4" style="display: none;">
+    <h3>4.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc4')">-</button></h3>
+    <div id="desc4">
+        <ul>
+            <li>Endpoint: <strong>/info</strong></li>
+            <li>Method: <strong>GET/POST</strong></li>
+            <li>Response Type: <strong>application/json</strong></li>
+            <li>Get Information of uid/device/instance/cluster， If none of the three parameters (uid/device/ip) are provided, the cluster's information will be returned.</li>
+        </ul>
+    </div>
+
+    <h3>4.2. Request Parameters <button class="round-button" onclick="toggleCodeBlock(this, 'params4')">+</button></h3>
+    <div id="params4" style="display: none;">
+        <h4>4.2.1. Header (Required for POST)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type/Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Content-Type</td>
+                    <td>Yes</td>
+                    <td>application/json</td>
+                    <td>POST JSON</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>4.2.2. Body Parameters</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type</th>
+                    <th>Restrictions</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>uid</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>device</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>address</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>sse-broker instance address(ip:port)</td>
+                </tr>
+            </tbody>                        
+        </table>
+    </div>    
+
+    <h3>4.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req4')">+</button></h3>
+    <div id="req4" style="display: none;">
+    <pre><code>
+        POST /info HTTP/1.1
+        {
+            "uid": "sssxyd",
+        }
+        // or
+        GET /info
+    </code></pre>
+    </div>
+
+    <h3>4.4. Response Example <button class="round-button" onclick="toggleCodeBlock(this, 'resp4')">+</button></h3>
+    <div id="resp4" style="display: none;">
+    <pre><code>{
+    "code": 1,  // 1: success, others: failure, all APIs return this format
+    "msg": "success",  
+    "result": {
+        "online": true,
+        "uid": "sssxyd",
+        "login_time": "2024-09-12 09:57:59",
+        "last_touch_time": "2024-09-12 10:13:59",
+        "devices": [
+            {
+                "device_id": "c7ea097beaf447e97f41af1c4651983c",
+                "device_name": "xuyd",
+                "uid": "sssxyd",
+                "login_time": "2024-09-12 09:57:59",
+                "instance_address": "192.168.2.22:8080",
+                "device_address": "192.168.2.22:64321",
+                "last_touch_time": "2024-09-12 10:13:59",
+                "last_frame_id": 0
+            }
+        ]
+    },  
+    "micros": 189       
+    }</code></pre>
+    </div>
+</div>
+
+<h2>5. Info <button class="round-button" onclick="toggleCodeBlock(this, 'api5')">+</button></h2>
+<div id="api5" style="display: none;">
+    <h3>5.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc5')">-</button></h3>
+    <div id="desc5">
+        <ul>
+            <li>Endpoint: <strong>/kick</strong></li>
+            <li>Method: <strong>GET/POST</strong></li>
+            <li>Response Type: <strong>application/json</strong></li>
+            <li>Kick uid/device Offline</li>
+        </ul>
+    </div>
+
+    <h3>5.2. Request Parameters <button class="round-button" onclick="toggleCodeBlock(this, 'params5')">+</button></h3>
+    <div id="params5" style="display: none;">
+        <h4>5.2.1. Header (Required for POST)</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type/Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Content-Type</td>
+                    <td>Yes</td>
+                    <td>application/json</td>
+                    <td>POST JSON</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>5.2.2. Body Parameters</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Required</th>
+                    <th>Type</th>
+                    <th>Restrictions</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>uid</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>User ID, multiple uids separated by commas</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>device</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>Device ID, multiple device IDs separated by commas</td>
+                </tr>
+            </tbody>   
+            <tbody>
+                <tr>
+                    <td>data</td>
+                    <td>No</td>
+                    <td>String</td>
+                    <td></td>
+                    <td>data part of event sys_kick_offline</td>
+                </tr>
+            </tbody>                                 
+        </table>
+    </div>    
+
+    <h3>5.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req5')">+</button></h3>
+    <div id="req5" style="display: none;">
+    <pre><code>
+        POST /kick HTTP/1.1
+        {
+            "uid": "sssxyd",
+        }
+        // or
+        GET /kick?uid=sssxyd
+    </code></pre>
+    </div>
+
+    <h3>5.4. Response Example <button class="round-button" onclick="toggleCodeBlock(this, 'resp5')">+</button></h3>
+    <div id="resp5" style="display: none;">
+    <pre><code>{
+    "code": 1,  // 1: success, others: failure, all APIs return this format
+    "msg": "success",  
+    "result": 2,  
+    "micros": 189       
+    }</code></pre>
+    </div>
+</div>
+
+
+<script>
+    function toggleCodeBlock(btn, blockId) {
+        var codeBlock = document.getElementById(blockId);
+        if (codeBlock.style.display === "none") {
+            codeBlock.style.display = "block";
+            btn.innerText = "-";
+        } else {
+            codeBlock.style.display = "none";
+            btn.innerText = "+";
+        }
+    }
+</script>
+
+</body>
+</html>
