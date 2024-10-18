@@ -1,0 +1,3 @@
+APP_NAME = "Vector Search"
+APP_VERSION = "1.0.1"
+SERVER_PORT = 8080

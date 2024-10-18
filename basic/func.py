@@ -3,6 +3,7 @@ import re
 import sys
 import time
 from datetime import datetime
+from typing import Any
 
 
 def get_executable_directory():
@@ -15,7 +16,7 @@ def get_executable_directory():
     return directory
 
 
-def load_args() -> dict[str, any]:
+def load_args() -> dict[str, Any]:
     params = dict()
     for i in range(1, len(sys.argv)):
         arg = str(sys.argv[i])
@@ -25,6 +26,8 @@ def load_args() -> dict[str, any]:
             idx = arg.find('=')
             if idx > 0:
                 params[arg[1:idx].strip()] = arg[idx + 1:].strip()
+            else:
+                params[arg[1:]] = None
     return params
 
 def get_duration(start_time: datetime) -> str:

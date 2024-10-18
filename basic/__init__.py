@@ -4,7 +4,7 @@ from datetime import datetime
 
 from .logger import LogLevel, LogFactory, set_global_log_level, get_logger
 
-def log(name : str = None) -> logging.Logger:
+def log(name : str = None, level: LogLevel = LogLevel.UNSET, file_name: str = 'app', line_number : bool = False) -> logging.Logger:
     # if name is None:
     #     # 获取当前函数的上一个栈帧
     #     caller_frame = inspect.currentframe().f_back
@@ -19,7 +19,7 @@ def log(name : str = None) -> logging.Logger:
     #             name = ""
     #     else:
     #         name = ""
-    return get_logger(name=name)
+    return get_logger(name=name, level=level, file_name=file_name, line_number=line_number)
 
 def cost_macro(start_time: datetime) -> int:
     return (datetime.now() - start_time).microseconds

@@ -6,25 +6,19 @@ import faiss
 import numpy as np
 import psutil
 from faiss import IndexFlatL2
+from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
 import basic
 from .dictWords import DictWord, trim_word, pinyin_word
 
 
-class IndexWord:
-    def __init__(self, index: str, code: str, word: str, score : int, distance : float):
-        self.index = index
-        self.code = code
-        self.word = word
-        self.score = score
-        self.distance = distance
-
-    def __str__(self):
-        return f"index={self.index}, code={self.code}, word={self.word}, score={self.score}, distance={self.distance}"
-
-    def __repr__(self):
-        return self.__str__()
+class IndexWord(BaseModel):
+    index: str
+    code: str
+    word: str
+    score: int
+    distance: float
 
     def isCredible(self) -> bool:
         if self.index == "PINYIN":

@@ -1,6 +1,7 @@
 import logging
 import os
 from enum import Enum
+from logging.handlers import TimedRotatingFileHandler
 
 from .func import get_executable_directory
 
@@ -11,6 +12,7 @@ class LogLevel(Enum):
     WARN = 30
     INFO = 20
     DEBUG = 10
+    ALL = 1
     UNSET = 0
 
 
@@ -42,7 +44,7 @@ def get_log_level(level: str) -> int:
     return global_log_level.value
 
 
-def get_logger(name: str, level: LogLevel = LogLevel.UNSET, file_name: str = 'app') -> logging.Logger:
+def get_logger(name: str, level: LogLevel = LogLevel.UNSET, file_name: str = 'app', line_number : bool = False) -> logging.Logger:
     log_dir = os.path.join(get_executable_directory(), 'logs')
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
@@ -50,7 +52,20 @@ def get_logger(name: str, level: LogLevel = LogLevel.UNSET, file_name: str = 'ap
     log = logging.getLogger(name)
 
     log_level = global_log_level if level == LogLevel.UNSET else level
-    formatter = logging.Formatter('%(asctime)s - %(name)s:%(filename)s:%(lineno)d[%(levelname)s] - %(message)s')
+
+    log_format_str = "%(asctime)s"
+    if name:
+        log_format_str += " - %(name)s"
+    if line_number:
+        if name:
+            log_format_str += ":%(filename)s:%(lineno)d"
+        else:
+            log_format_str += " - %(filename)s:%(lineno)d"
+    if level != LogLevel.ALL:
+        log_format_str += " - [%(levelname)s]"
+    log_format_str += " - %(message)s"
+
+    formatter = logging.Formatter(log_format_str)
 
     if not log.handlers:  # Avoid adding duplicate handlers
         # 创建控制台处理器
@@ -59,12 +74,12 @@ def get_logger(name: str, level: LogLevel = LogLevel.UNSET, file_name: str = 'ap
         console_handler.setFormatter(formatter)
         log.addHandler(console_handler)
 
-        info_handler = logging.FileHandler(log_file_path, encoding='utf-8')
-        info_handler.setLevel(logging.DEBUG)
+        info_handler = TimedRotatingFileHandler(log_file_path, when="midnight", interval=1)
+        info_handler.setLevel(level=LogLevel.DEBUG.value if log_level == LogLevel.ALL else log_level.value)
+        info_handler.suffix = "%Y%m%d"
         info_handler.setFormatter(formatter)
         log.addHandler(info_handler)
 
-    log.setLevel(log_level.value)  # 设置日志记录器级别
     return log
 
 
