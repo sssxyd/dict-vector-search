@@ -27,4 +27,4 @@ def cost_macro(start_time: datetime) -> int:
 def setLogLevel(level: LogLevel):
     set_global_log_level(level)
 
-__all__ = ['setLogLevel', 'LogLevel', 'log', 'func']
+__all__ = ['setLogLevel', 'LogLevel', 'log', 'func', 'LogFactory']

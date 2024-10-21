@@ -1,8 +1,7 @@
+import multiprocessing
 import os.path
 from datetime import datetime
-from zipfile import error
 
-import psutil
 import uvicorn
 
 import basic.func
@@ -24,6 +23,7 @@ import sentence_transformers
 import faiss
 import numpy
 import pydantic
+import psutil
 import multipart
 
 
@@ -66,6 +66,7 @@ def run_usage():
     print(f"\t batch: batch size for embeddings , default 500")
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     args = basic.func.load_args()
     if 'version' in args or 'Version' in args or 'v' in args or 'V' in args:
         print(f"{APP_NAME} - {APP_VERSION}")

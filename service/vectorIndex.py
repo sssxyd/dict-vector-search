@@ -62,19 +62,22 @@ def create_vector_indexes(batch_index_dir : str, index_words : list[str], model 
         worker = psutil.cpu_count(logical=True)
     worker_size = math.ceil(len(index_words)/worker)
     print(f"Creating indexes with {worker} workers, each worker process {worker_size} words")
-    with multiprocessing.Pool(processes=worker) as pool:
-        worker_index = 1
-        results = []
-        for i in range(0, len(index_words), worker_size):
-            batch_words = index_words[i:i + worker_size]
-            result = pool.apply_async(_vector_words_with_model, args=(worker_index, batch_words, model, batch_size))
-            results.append(result)
-            worker_index = worker_index + 1
+    if worker == 1:
+        word_embeddings, pinyin_embeddings = _vector_words_with_model(1, index_words, model, batch_size)
+    else:
+        with multiprocessing.Pool(processes=worker) as pool:
+            worker_index = 1
+            results = []
+            for i in range(0, len(index_words), worker_size):
+                batch_words = index_words[i:i + worker_size]
+                result = pool.apply_async(_vector_words_with_model, args=(worker_index, batch_words, model, batch_size))
+                results.append(result)
+                worker_index = worker_index + 1
 
-        for result in results:
-            word_embedding, pinyin_embedding = result.get()
-            word_embeddings.append(word_embedding)
-            pinyin_embeddings.append(pinyin_embedding)
+            for result in results:
+                word_embedding, pinyin_embedding = result.get()
+                word_embeddings.append(word_embedding)
+                pinyin_embeddings.append(pinyin_embedding)
 
     word_embeddings = np.vstack(word_embeddings)
     pinyin_embeddings = np.vstack(pinyin_embeddings)
