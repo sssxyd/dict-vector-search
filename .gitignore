@@ -166,3 +166,10 @@ cython_debug/
 /index/word_index.bin
 /index/index_words.csv
 /index/pinyin_index.bin
+/index
+/validate_results.csv
+/vector-search.spec
+/向量搜索-20241017-全量召回.xlsx
+/向量召回-20241016-非PC.xlsx
+/dict/dict_words_all.csv
+/dict/dict_words_medicine.csv
