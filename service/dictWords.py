@@ -50,6 +50,10 @@ def _split_word(word: str, ngram_min : int = 3, ngram_max : int = 5) -> set[str]
 def get_latest_directory() -> str | None:
     # 定义时间格式的正则表达式
     base_path = os.path.join(basic.func.get_executable_directory(), 'index')
+    if not os.path.exists(base_path):
+        os.mkdir(base_path)
+        return None
+
     time_pattern = re.compile(r'^\d{14}$')  # 匹配 14 位数字 (yyyyMMddHHmmss)
 
     # 获取 base_path 下的所有子目录，并且目录名符合时间格式

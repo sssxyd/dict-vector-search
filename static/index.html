@@ -76,9 +76,9 @@
 <body>
 <h1 style="text-align: center;"> Vector-Search Usage <iframe src="https://ghbtns.com/github-btn.html?user=sssxyd&repo=dict-vector-search&type=star&size=large&text=false" frameborder="0" scrolling="0" width="40" height="30" title="GitHub"></iframe></h1>
 
-<h2>1. Put Dict Words <button class="round-button" onclick="toggleCodeBlock(this, 'api1')">+</button></h2>
+<h2>1. 上传字典 <button class="round-button" onclick="toggleCodeBlock(this, 'api1')">+</button></h2>
 <div id="api1" style="display: none;">
-    <h3>1.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc1')">-</button></h3>
+    <h3>1.1.  <button class="round-button" onclick="toggleCodeBlock(this, 'desc1')">-</button></h3>
     <div id="desc1">
         <ul>
             <li>Endpoint: <strong>/token</strong></li>
@@ -175,7 +175,7 @@
     </div>
 </div>
 
-<h2>2. Create Vector Index <button class="round-button" onclick="toggleCodeBlock(this, 'api2')">+</button></h2>
+<h2>2. 创建索引 <button class="round-button" onclick="toggleCodeBlock(this, 'api2')">+</button></h2>
 <div id="api2" style="display: none;">
     <h3>2.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc2')">-</button></h3>
     <div id="desc2">
@@ -246,7 +246,7 @@
                     <td></td>
                     <td>User ID, multiple uids separated by commas</td>
                 </tr>
-            </tbody>  
+            </tbody>
             <tbody>
                 <tr>
                     <td>device</td>
@@ -255,9 +255,9 @@
                     <td></td>
                     <td>Device ID, multiple device IDs separated by commas</td>
                 </tr>
-            </tbody>          
+            </tbody>
         </table>
-    </div>    
+    </div>
 
     <h3>2.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req2')">+</button></h3>
     <div id="req2" style="display: none;">
@@ -283,7 +283,7 @@
     </div>
 </div>
 
-<h2>3. Reload Server <button class="round-button" onclick="toggleCodeBlock(this, 'api3')">+</button></h2>
+<h2>3. 启动/重启服务 <button class="round-button" onclick="toggleCodeBlock(this, 'api3')">+</button></h2>
 <div id="api3" style="display: none;">
     <h3>3.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc3')">-</button></h3>
     <div id="desc3">
@@ -329,7 +329,7 @@
                     <td>Int</td>
                     <td>If the id is in the query parameter, this header is ignored; otherwise, the value of this header is used as the id</td>
                 </tr>
-            </tbody>                        
+            </tbody>
         </table>
         <h4>3.2.2. Body Parameters</h4>
         <table>
@@ -368,10 +368,10 @@
                     <td>If not passed in the query, it is taken from the header (X-SSE-ID); if not available, the LastEventId mechanism is not used</td>
                     <td>LastEventId</td>
                 </tr>
-            </tbody>            
+            </tbody>
         </table>
     </div>
-    
+
     <h3>3.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req3')">+</button></h3>
     <div id="req3" style="display: none;">
     <pre><code>
@@ -380,7 +380,7 @@
     </div>
 </div>
 
-<h2>4. Search <button class="round-button" onclick="toggleCodeBlock(this, 'api4')">+</button></h2>
+<h2>4. 查看服务详情 <button class="round-button" onclick="toggleCodeBlock(this, 'api4')">+</button></h2>
 <div id="api4" style="display: none;">
     <h3>4.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc4')">-</button></h3>
     <div id="desc4">
@@ -451,9 +451,9 @@
                     <td></td>
                     <td>sse-broker instance address(ip:port)</td>
                 </tr>
-            </tbody>                        
+            </tbody>
         </table>
-    </div>    
+    </div>
 
     <h3>4.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req4')">+</button></h3>
     <div id="req4" style="display: none;">
@@ -471,7 +471,7 @@
     <div id="resp4" style="display: none;">
     <pre><code>{
     "code": 1,  // 1: success, others: failure, all APIs return this format
-    "msg": "success",  
+    "msg": "success",
     "result": {
         "online": true,
         "uid": "sssxyd",
@@ -489,13 +489,13 @@
                 "last_frame_id": 0
             }
         ]
-    },  
-    "micros": 189       
+    },
+    "micros": 189
     }</code></pre>
     </div>
 </div>
 
-<h2>5. Info <button class="round-button" onclick="toggleCodeBlock(this, 'api5')">+</button></h2>
+<h2>5. 向量搜索 <button class="round-button" onclick="toggleCodeBlock(this, 'api5')">+</button></h2>
 <div id="api5" style="display: none;">
     <h3>5.1. API Description <button class="round-button" onclick="toggleCodeBlock(this, 'desc5')">-</button></h3>
     <div id="desc5">
@@ -557,7 +557,7 @@
                     <td></td>
                     <td>Device ID, multiple device IDs separated by commas</td>
                 </tr>
-            </tbody>   
+            </tbody>
             <tbody>
                 <tr>
                     <td>data</td>
@@ -566,9 +566,9 @@
                     <td></td>
                     <td>data part of event sys_kick_offline</td>
                 </tr>
-            </tbody>                                 
+            </tbody>
         </table>
-    </div>    
+    </div>
 
     <h3>5.3. Request Example <button class="round-button" onclick="toggleCodeBlock(this, 'req5')">+</button></h3>
     <div id="req5" style="display: none;">
@@ -586,9 +586,9 @@
     <div id="resp5" style="display: none;">
     <pre><code>{
     "code": 1,  // 1: success, others: failure, all APIs return this format
-    "msg": "success",  
-    "result": 2,  
-    "micros": 189       
+    "msg": "success",
+    "result": 2,
+    "micros": 189
     }</code></pre>
     </div>
 </div>
