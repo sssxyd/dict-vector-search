@@ -1,7 +1,4 @@
-import asyncio
 import os
-import signal
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Optional
@@ -19,6 +16,7 @@ from service import dictWords
 from service import vectorIndex
 
 # 初始化全局变量
+startTime = datetime.now()
 words : dict[str, dictWords.DictWord] = dictWords.load_dict_word_set()
 codes : list[set[str]] = dictWords.load_index_codes()
 model: Optional[SentenceTransformer] = aiModel.load_sentence_transformer_model()
@@ -26,32 +24,30 @@ word_index, pinyin_index = vectorIndex.load_vector_indexes()
 info : dict[str, Any] = {
     "name": APP_NAME,
     "version": APP_VERSION,
-    "loadTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "loadTime": startTime.strftime("%Y-%m-%d %H:%M:%S"),
     "model": "sentence-transformers/distiluse-base-multilingual-cased-v1",
     "dictWordSize": len(words),
     "indexWordSize": len(codes),
 }
-create_index_lock = asyncio.Lock()
-# 全局线程池，最多可以创建一定数量的线程
-executor = ThreadPoolExecutor(max_workers=10)
 
 # 初始化日志记录器
-access_logger = basic.log(file_name="access.log", level=LogLevel.ALL)
-error_logger = basic.log(file_name="error.log", level=LogLevel.ALL)
+access_logger = basic.log(name="access", file_name="access", level=LogLevel.ALL, line_number=False)
+error_logger = basic.log(name="error", file_name="error", level=LogLevel.ALL, line_number=False)
 
 # 使用 async contextmanager 创建 lifespan 事件处理器
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # 应用启动时
-    access_logger.info(f"{info['name']} - V{info['version']} started")
-    access_logger.info(f"Service info: {info}")
-
+    log = basic.log()
+    log.info(f"{info['name']} - V{info['version']} started")
+    log.info(f"Service info: {info}")
+    log.info(f"Server start cost {basic.func.get_duration(startTime)}")
     yield  # 这里会继续运行应用的主循环
 
     # 应用关闭时
-    access_logger.info(f"{info['name']} - V{info['version']} stopped")
+    log.info(f"{info['name']} - V{info['version']} stopped")
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # 使用 @app.middleware("http") 来实现中间件
 @app.middleware("http")
@@ -66,7 +62,6 @@ async def log_requests(request: Request, call_next):
     else:
         # 如果没有 X-Forwarded-For，直接使用 request.client.host
         client_ip = request.client.host
-
     access_logger.info(f"Request: {client_ip} - {request.method} - {request.url}")
     response = await call_next(request)
     end_time = datetime.now()
@@ -94,18 +89,6 @@ async def exception_handler(request: Request, exc: Exception):
         content={"message": "An internal server error occurred."},
     )
 
-
-async def _create_vector_index_and_reload(ai_model: SentenceTransformer, reload: bool, main_pid: int, worker: int,
-                                         ngram_min: int, ngram_max: int, batch_size: int):
-    try:
-        keys = dictWords.prepare_index_words(ngram_min, ngram_max)
-        vectorIndex.create_vector_indexes(keys, ai_model, worker, batch_size)
-        if reload:
-            os.kill(main_pid, signal.SIGHUP)
-    except Exception as e:
-        basic.log().error(msg="创建索引失败", exc_info=e)
-    finally:
-        create_index_lock.release()
 
 @app.get("/favicon.ico")
 async def favicon_ico():
@@ -145,28 +128,6 @@ async def upload_dict_words(file: UploadFile = File(...)):
     return {'code': 1, 'message': 'success', 'result': basic.func.get_file_last_modify_time(file_location),
             'micro': basic.cost_macro(micro_start)}
 
-@app.get("/index")
-async def create_vector_index(ngram_min : int = 3, ngram_max : int = 5, worker : int = 0, batch_size = 500, reload: bool = False):
-    micro_start = datetime.now()
-
-    # 尝试获取锁，设置最大等待时间为 500 ms
-    try:
-        await asyncio.wait_for(create_index_lock.acquire(), timeout=0.5)
-    except asyncio.TimeoutError:
-        return {'code': 103, 'msg': "其他任务正在创建索引，请等待其结束后重试", 'micro': basic.cost_macro(micro_start)}
-
-    # 异步创建索引
-    main_pid = os.getppid()     #  Gunicorn 主进程ID
-    executor.submit(_create_vector_index_and_reload, model, reload, main_pid, worker, ngram_min, ngram_max, batch_size)
-
-    return {'code': 1, 'message': 'success', 'micro': basic.cost_macro(micro_start)}
-
-@app.get("/reload")
-async def reload_via_signal():
-    micro_start = datetime.now()
-    os.kill(os.getppid(), signal.SIGHUP)  # 给 Gunicorn 主进程发送 SIGHUP 信号
-    return {'code': 1, 'message': 'success', 'micro': basic.cost_macro(micro_start)}
-
 @app.get("/search")
 async def search_vector_index(word : str, top : int = 3, pinyin : bool = False):
     micro_start = datetime.now()
@@ -176,7 +137,6 @@ async def search_vector_index(word : str, top : int = 3, pinyin : bool = False):
         return {'code': 104, 'msg': "索引尚未创建，请先reload", 'micro': basic.cost_macro(micro_start)}
     if not model:
         return {'code': 105, 'msg': "模型尚未加载，请先reload", 'micro': basic.cost_macro(micro_start)}
-
     results = vectorIndex.search_vector_indexes(word=word, model=model, word_index=word_index,
                                                 pinyin_index=pinyin_index, index_codes=codes, dict_words=words,
                                                 top_k=top, pinyin=pinyin)

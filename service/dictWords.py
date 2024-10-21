@@ -1,12 +1,13 @@
 import csv
 import os
 import re
-import time
+import shutil
 
 import jieba
 from pypinyin import pinyin, Style
 
 import basic
+
 
 class DictWord:
     def __init__(self, code: str, word: str):
@@ -32,7 +33,7 @@ def pinyin_word(word: str) -> str:
         pinyin_str += item[0] + ' '
     return pinyin_str.strip()
 
-def split_word(word: str, ngram_min : int = 3, ngram_max : int = 5) -> set[str]:
+def _split_word(word: str, ngram_min : int = 3, ngram_max : int = 5) -> set[str]:
     sub_words = set()
 
     # 对每个可能的子字符串长度进行循环
@@ -45,6 +46,21 @@ def split_word(word: str, ngram_min : int = 3, ngram_max : int = 5) -> set[str]:
         if len(w) > 1:
             sub_words.add(w)
     return sub_words
+
+def get_latest_directory() -> str | None:
+    # 定义时间格式的正则表达式
+    base_path = os.path.join(basic.func.get_executable_directory(), 'index')
+    time_pattern = re.compile(r'^\d{14}$')  # 匹配 14 位数字 (yyyyMMddHHmmss)
+
+    # 获取 base_path 下的所有子目录，并且目录名符合时间格式
+    valid_dirs = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d)) and time_pattern.match(d)]
+
+    # 如果没有符合条件的目录，返回 None
+    if not valid_dirs:
+        return None
+
+    # 返回名称最大的目录
+    return os.path.join(base_path, max(valid_dirs))
 
 def prepare_dict_words():
     log = basic.log()
@@ -81,13 +97,16 @@ def prepare_dict_words():
     log.info(f">>saved {len(word_list)} words to {filepath}")
 
 
-def load_dict_words() -> list[DictWord]:
-    log = basic.log()
-    filepath = os.path.join(basic.func.get_executable_directory(), 'dict', 'dict_words.csv')
-    if not os.path.exists(filepath):
-        log.error(f"File not found: {filepath}")
+def _copy_and_read_dict_words(batch_index_dir : str) -> list[DictWord]:
+    if not os.path.exists(batch_index_dir):
+        os.mkdir(batch_index_dir)
+    src_path = os.path.join(basic.func.get_executable_directory(), 'dict', 'dict_words.csv')
+    if not os.path.exists(src_path):
+        print(f"File not found: {src_path}")
         return []
-    with open(filepath, 'r', newline='', encoding='utf-8') as file:
+    dest_path = os.path.join(batch_index_dir, 'dict_words.csv')
+    shutil.copy(src_path, dest_path)
+    with open(dest_path, 'r', newline='', encoding='utf-8') as file:
         reader = csv.reader(file)
         words = []
         # 逐行读取数据
@@ -98,7 +117,11 @@ def load_dict_words() -> list[DictWord]:
 
 def load_dict_word_set() -> dict[str, DictWord]:
     log = basic.log()
-    filepath = os.path.join(basic.func.get_executable_directory(), 'dict', 'dict_words.csv')
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        log.error(f"Batch index directory not found")
+        return dict()
+    filepath = os.path.join(batch_index_dir, 'dict_words.csv')
     if not os.path.exists(filepath):
         log.error(f"File not found: {filepath}")
         return dict()
@@ -111,18 +134,18 @@ def load_dict_word_set() -> dict[str, DictWord]:
             words[dw.code] = dw
     return words
 
-def prepare_index_words(ngram_min : int = 3, ngram_max : int = 5) -> list[str]:
-    log = basic.log()
-    words = load_dict_words()
+def prepare_index_words(batch_index_dir : str, ngram_min : int = 3, ngram_max : int = 5) -> list[str]:
+    words = _copy_and_read_dict_words(batch_index_dir)
     keys = []
     index_words = dict()
     for word in words:
-        sub_words = split_word(word.word, ngram_min, ngram_max)
+        sub_words = _split_word(word.word, ngram_min, ngram_max)
         for sub_word in sub_words:
             if sub_word not in index_words:
                 index_words[sub_word] = set()
             index_words[sub_word].add(word.code)
-    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'index_words.csv')
+
+    filepath = os.path.join(batch_index_dir, 'index_words.csv')
     basic.func.touch_dir(os.path.dirname(filepath))
     if os.path.exists(filepath):
         os.remove(filepath)
@@ -133,12 +156,16 @@ def prepare_index_words(ngram_min : int = 3, ngram_max : int = 5) -> list[str]:
             keys.append(key)
             codes = ', '.join(str(num) for num in value)
             writer.writerow([key, codes])
-    log.info(f">>saved {len(index_words)} index words to {filepath}")
+    print(f"saved {len(index_words)} index words to {filepath}")
     return keys
 
 def load_index_codes() -> list[set[str]]:
     log = basic.log()
-    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'index_words.csv')
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        log.error(f"Batch index directory not found")
+        return []
+    filepath = os.path.join(batch_index_dir, 'index_words.csv')
     if not os.path.exists(filepath):
         log.error(f"File not found: {filepath}")
         return []
@@ -155,10 +182,11 @@ def load_index_codes() -> list[set[str]]:
 
 def load_index_word_codes() -> (list[str], list[set[str]]):
     log = basic.log()
-    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'index_words.csv')
-    if not os.path.exists(filepath):
-        log.error(f"File not found: {filepath}")
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        log.error(f"Batch index directory not found")
         return [], []
+    filepath = os.path.join(batch_index_dir, 'index_words.csv')
 
     wordList = []
     codeList = []
@@ -174,9 +202,19 @@ def load_index_word_codes() -> (list[str], list[set[str]]):
     return wordList, codeList
 
 def get_dict_words_last_modify_time() -> str:
-    filepath = os.path.join(basic.func.get_executable_directory(), 'dict', 'dict_words.csv')
+    log = basic.log()
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        log.error(f"Batch index directory not found")
+        return '1900-01-01 00:00:00'
+    filepath = os.path.join(batch_index_dir, 'dict_words.csv')
     return basic.func.get_file_last_modify_time(filepath)
 
 def get_index_words_last_modify_time() -> str:
-    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'index_words.csv')
+    log = basic.log()
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        log.error(f"Batch index directory not found")
+        return '1900-01-01 00:00:00'
+    filepath = os.path.join(batch_index_dir, 'index_words.csv')
     return basic.func.get_file_last_modify_time(filepath)

@@ -28,6 +28,12 @@ def load_args() -> dict[str, Any]:
                 params[arg[1:idx].strip()] = arg[idx + 1:].strip()
             else:
                 params[arg[1:]] = None
+        else:
+            idx = arg.find('=')
+            if idx > 0:
+                params[arg[:idx].strip()] = arg[idx + 1:].strip()
+            else:
+                params[arg] = None
     return params
 
 def get_duration(start_time: datetime) -> str:

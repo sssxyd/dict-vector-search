@@ -29,32 +29,34 @@ def get_global_log_level():
     return global_log_level
 
 
-def get_log_level(level: str) -> int:
+def get_log_level(level: str) -> LogLevel:
     level = level.strip().upper()
     if level == "FATAL" or level == "CRITICAL":
-        return LogLevel.FATAL.value
+        return LogLevel.FATAL
     if level == "ERROR":
-        return LogLevel.ERROR.value
+        return LogLevel.ERROR
     if level == "WARN" or level == "WARNING":
-        return LogLevel.WARN.value
+        return LogLevel.WARN
     if level == "INFO":
-        return LogLevel.INFO.value
+        return LogLevel.INFO
     if level == "DEBUG":
-        return LogLevel.DEBUG.value
-    return global_log_level.value
+        return LogLevel.DEBUG
+    return global_log_level
 
 
-def get_logger(name: str, level: LogLevel = LogLevel.UNSET, file_name: str = 'app', line_number : bool = False) -> logging.Logger:
+def get_logger(name: str, level: LogLevel = LogLevel.UNSET, file_name: str = 'app', line_number : bool = True) -> logging.Logger:
+    log = logging.getLogger(name)
+    if log.handlers:
+        return log
+
     log_dir = os.path.join(get_executable_directory(), 'logs')
     if not os.path.exists(log_dir):
         os.mkdir(log_dir)
     log_file_path = os.path.join(log_dir, f"{file_name}.log")
-    log = logging.getLogger(name)
-
     log_level = global_log_level if level == LogLevel.UNSET else level
 
     log_format_str = "%(asctime)s"
-    if name:
+    if name and line_number:
         log_format_str += " - %(name)s"
     if line_number:
         if name:
@@ -67,25 +69,26 @@ def get_logger(name: str, level: LogLevel = LogLevel.UNSET, file_name: str = 'ap
 
     formatter = logging.Formatter(log_format_str)
 
-    if not log.handlers:  # Avoid adding duplicate handlers
-        # 创建控制台处理器
-        console_handler = logging.StreamHandler()
-        console_handler.setLevel(logging.DEBUG)
-        console_handler.setFormatter(formatter)
-        log.addHandler(console_handler)
+    # 创建控制台处理器
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+    log.addHandler(console_handler)
 
-        info_handler = TimedRotatingFileHandler(log_file_path, when="midnight", interval=1)
-        info_handler.setLevel(level=LogLevel.DEBUG.value if log_level == LogLevel.ALL else log_level.value)
-        info_handler.suffix = "%Y%m%d"
-        info_handler.setFormatter(formatter)
-        log.addHandler(info_handler)
+    info_handler = TimedRotatingFileHandler(log_file_path, when="midnight", interval=1)
+    info_handler.setLevel(level=LogLevel.DEBUG.value if log_level == LogLevel.ALL else log_level.value)
+    info_handler.suffix = "%Y%m%d"
+    info_handler.setFormatter(formatter)
+    log.addHandler(info_handler)
+
+    log.setLevel(level=LogLevel.DEBUG.value if log_level == LogLevel.ALL else log_level.value)
 
     return log
 
 
 class LogFactory:
     @staticmethod
-    def getLogLevelValue(level: str) -> int:
+    def getLogLevelValue(level: str) -> LogLevel:
         return get_log_level(level=level)
 
     @staticmethod

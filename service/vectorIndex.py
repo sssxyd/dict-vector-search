@@ -1,6 +1,7 @@
 import math
 import multiprocessing
 import os
+import re
 
 import faiss
 import numpy as np
@@ -10,7 +11,7 @@ from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
 import basic
-from .dictWords import DictWord, trim_word, pinyin_word
+from .dictWords import DictWord, trim_word, pinyin_word, get_latest_directory
 
 
 class IndexWord(BaseModel):
@@ -34,9 +35,7 @@ class IndexWord(BaseModel):
             return True
 
 
-def _vector_words_with_model(process_index : int, index_words: list[str], model: SentenceTransformer) -> (list[np.ndarray], list[np.ndarray]):
-    log = basic.log()  # 确保log函数正确
-    batch_size = 500  # 可以根据内存大小调整批大小
+def _vector_words_with_model(process_index : int, index_words: list[str], model: SentenceTransformer, batch_size : int = 500,) -> (list[np.ndarray], list[np.ndarray]):
     word_embeddings = []
     pinyin_embeddings = []
     count = 0
@@ -50,26 +49,25 @@ def _vector_words_with_model(process_index : int, index_words: list[str], model:
         count += len(original_words)
         word_embeddings.append(model.encode(original_words))
         pinyin_embeddings.append(model.encode(pinyin_words))
-        log.info(f"Process[{process_index}] Indexing {count}/{len(index_words)} index words")
+        print(f"Process[{process_index}] Indexing {count}/{len(index_words)} index words")
     word_embeddings = np.vstack(word_embeddings)
     pinyin_embeddings = np.vstack(pinyin_embeddings)
     return word_embeddings, pinyin_embeddings
 
 
-def create_vector_indexes(index_words : list[str], model : SentenceTransformer, worker : int = 0, batch_size : int = 500):
-    log = basic.log()  # 确保log函数正确
+def create_vector_indexes(batch_index_dir : str, index_words : list[str], model : SentenceTransformer, worker : int = 0, batch_size : int = 500):
     word_embeddings = []
     pinyin_embeddings = []
     if worker == 0:
         worker = psutil.cpu_count(logical=True)
     worker_size = math.ceil(len(index_words)/worker)
-    log.info(f"Creating indexes with {worker} workers, each worker process {worker_size} words")
+    print(f"Creating indexes with {worker} workers, each worker process {worker_size} words")
     with multiprocessing.Pool(processes=worker) as pool:
         worker_index = 1
         results = []
         for i in range(0, len(index_words), worker_size):
             batch_words = index_words[i:i + worker_size]
-            result = pool.apply_async(_vector_words_with_model, args=(worker_index, batch_words, model))
+            result = pool.apply_async(_vector_words_with_model, args=(worker_index, batch_words, model, batch_size))
             results.append(result)
             worker_index = worker_index + 1
 
@@ -84,22 +82,26 @@ def create_vector_indexes(index_words : list[str], model : SentenceTransformer, 
     d = word_embeddings.shape[1]  # 向量维度
     word_index = faiss.IndexFlatL2(d)  # 使用L2距离
     word_index.add(word_embeddings)    # 添加向量到索引
-    word_index_file_path = os.path.join(basic.func.get_executable_directory(), 'index', 'word_index.bin')
+    word_index_file_path = os.path.join(batch_index_dir, 'word_index.bin')
     faiss.write_index(word_index, word_index_file_path)
-    log.info(f"Word index saved to {word_index_file_path}")
+    print(f"Word index saved to {word_index_file_path}")
     # 创建FAISS索引
     d = pinyin_embeddings.shape[1]  # 向量维度
     pinyin_index = faiss.IndexFlatL2(d)  # 使用L2距离
     pinyin_index.add(pinyin_embeddings)    # 添加向量到索引
-    pinyin_index_file_path = os.path.join(basic.func.get_executable_directory(), 'index', 'pinyin_index.bin')
+    pinyin_index_file_path = os.path.join(batch_index_dir, 'pinyin_index.bin')
     faiss.write_index(pinyin_index, pinyin_index_file_path)
-    log.info(f"Pinyin index saved to {pinyin_index_file_path}")
+    print(f"Pinyin index saved to {pinyin_index_file_path}")
 
 
 def load_vector_indexes() -> (IndexFlatL2, IndexFlatL2):
     log = basic.log()  # 确保log函数正确
-    word_index_file_path = os.path.join(basic.func.get_executable_directory(), 'index', 'word_index.bin')
-    pinyin_index_file_path = os.path.join(basic.func.get_executable_directory(), 'index', 'pinyin_index.bin')
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        log.error("Index directory not found")
+        return None, None
+    word_index_file_path = os.path.join(batch_index_dir, 'word_index.bin')
+    pinyin_index_file_path = os.path.join(batch_index_dir, 'pinyin_index.bin')
     if not os.path.exists(word_index_file_path) or not os.path.exists(pinyin_index_file_path):
         log.error(f"Index file not found: {word_index_file_path} or {pinyin_index_file_path}")
         return None, None
@@ -165,11 +167,17 @@ def _search_vector_indexes(key_word: str, pinyin: bool,  model: SentenceTransfor
     return results
 
 def get_word_index_last_modify_time() -> str:
-    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'word_index.bin')
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        return '1900-01-01 00:00:00'
+    filepath = os.path.join(batch_index_dir, 'word_index.bin')
     return basic.func.get_file_last_modify_time(filepath)
 
 def get_pinyin_index_last_modify_time() -> str:
-    filepath = os.path.join(basic.func.get_executable_directory(), 'index', 'pinyin_index.bin')
+    batch_index_dir = get_latest_directory()
+    if not batch_index_dir:
+        return '1900-01-01 00:00:00'
+    filepath = os.path.join(batch_index_dir, 'pinyin_index.bin')
     return basic.func.get_file_last_modify_time(filepath)
 
 def search_vector_indexes(word: str, model: SentenceTransformer, word_index: IndexFlatL2, pinyin_index : IndexFlatL2,

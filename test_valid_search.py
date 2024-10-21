@@ -10,11 +10,9 @@ from service import aiModel
 from service.vectorIndex import IndexWord
 
 
-# dict_words = dict.collect_dict_words(split=True)
-# dict.save_dict_words(dict_words)
 def read_keywords() -> list[str]:
-    with open("validate_keywords.txt", "r", encoding="utf-8") as file:
-        return file.readlines()
+    with open("validate_keywords.txt", "r", encoding="utf-8") as txt_file:
+        return txt_file.readlines()
 
 def split_keyword(word : str) -> list[str]:
     # 匹配所有不是中文、英文、数字的字符

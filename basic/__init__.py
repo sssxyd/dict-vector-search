@@ -4,7 +4,7 @@ from datetime import datetime
 
 from .logger import LogLevel, LogFactory, set_global_log_level, get_logger
 
-def log(name : str = None, level: LogLevel = LogLevel.UNSET, file_name: str = 'app', line_number : bool = False) -> logging.Logger:
+def log(name : str = None, level: LogLevel = LogLevel.UNSET, file_name: str = 'app', line_number : bool = True) -> logging.Logger:
     # if name is None:
     #     # 获取当前函数的上一个栈帧
     #     caller_frame = inspect.currentframe().f_back
