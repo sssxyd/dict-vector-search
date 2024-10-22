@@ -10,3 +10,4 @@ model.save('model/distiluse-base-multilingual-cased-v1')
 ```
 
 ## 百度网盘
+[sentence-transformers/distiluse-base-multilingual-cased-v1](https://pan.baidu.com/s/1rKO79MwrousoL8FIA-eceA?pwd=1234)
