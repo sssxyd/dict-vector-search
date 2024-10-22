@@ -1,6 +1,9 @@
 # dict-vector-search
 本项目利用SentenceTransformer对字典词条进行向量化，创建Faiss向量索引，实现错别字、同音字、形似字、漏字等情况的搜索词召回。
 
+## Requirements
+- Python 3.11+
+
 ## Example
 - 单氨胖光酸 <code>http://localhost:8080/search?word=单氨胖光酸&top=1&pinyin=1</code>
     ```json
@@ -100,7 +103,11 @@
 - 访问帮助页面
     - <code>http://localhost:8080/</code>
 
-## 安装打包
+## 安装
+### 下载打包程序
+- 从 [release page](https://github.com/sssxyd/dict-vector-search/releases/) 下载Windows打包程序
+
+### 从源码打包
 - 创建虚拟环境
     ```shell
     python -m venv .venv
