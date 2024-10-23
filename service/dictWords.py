@@ -33,7 +33,7 @@ def pinyin_word(word: str) -> str:
         pinyin_str += item[0] + ' '
     return pinyin_str.strip()
 
-def _split_word(word: str, ngram_min : int = 3, ngram_max : int = 5) -> set[str]:
+def split_word(word: str, ngram_min : int = 3, ngram_max : int = 5) -> set[str]:
     sub_words = set()
 
     # 对每个可能的子字符串长度进行循环
@@ -143,7 +143,7 @@ def prepare_index_words(batch_index_dir : str, ngram_min : int = 3, ngram_max : 
     keys = []
     index_words = dict()
     for word in words:
-        sub_words = _split_word(word.word, ngram_min, ngram_max)
+        sub_words = split_word(word.word, ngram_min, ngram_max)
         for sub_word in sub_words:
             if sub_word not in index_words:
                 index_words[sub_word] = set()

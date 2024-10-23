@@ -25,12 +25,12 @@ class IndexWord(BaseModel):
         if self.index == "PINYIN":
             return True
         if self.score < 1:
-            return self.distance > 0.6
+            return self.distance < 0.4
         elif self.score == 1:
             if len(self.word) > 3:
-                return self.distance > 0.5
+                return self.distance < 0.3
             else:
-                return self.distance > 0.3
+                return self.distance < 0.5
         else:
             return True
 
@@ -196,7 +196,7 @@ def search_vector_indexes(word: str, model: SentenceTransformer, word_index: Ind
         index_words += _search_vector_indexes(key_word, True, model, pinyin_index, index_codes, dict_words, top_n)
 
     # 按照分数和距离排序
-    sorted_results = sorted(index_words, key=lambda x: (-x.score, -x.distance, len(x.word)))
+    sorted_results = sorted(index_words, key=lambda x: (-x.score, x.distance, len(x.word)))
 
     # 去除重复的词
     exist_words = set()
